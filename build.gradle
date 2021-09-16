@@ -14,6 +14,8 @@ repositories {
     mavenCentral()
 }
 
+group = 'com.github.iotacb'
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
