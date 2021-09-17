@@ -1,5 +1,7 @@
 # **ChefkochAPI**
 [![](https://jitpack.io/v/iotacb/ChefkochAPI.svg)](https://jitpack.io/#iotacb/ChefkochAPI)
+[![Awesome Kotlin Badge](https://kotlin.link/awesome-kotlin.svg)](https://github.com/KotlinBy/awesome-kotlin)
+
 
 ## **Getting Started**
 
