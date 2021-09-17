@@ -1,11 +1,7 @@
 package de.kostari.chefkoch.recipe
 
-import de.kostari.chefkoch.recipe.misc.RecipeComment
-import de.kostari.chefkoch.recipe.misc.RecipeData
-import de.kostari.chefkoch.recipe.misc.RecipeDate
-import de.kostari.chefkoch.recipe.misc.RecipeDifficulty
+import de.kostari.chefkoch.recipe.misc.*
 import de.kostari.chefkoch.recipe.unit.RecipeUnit
-import de.kostari.chefkoch.recipe.unit.RecipeUnits
 import de.kostari.chefkoch.recipe.user.RecipeUser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -19,10 +15,14 @@ class Recipe(private var recipeDocument: Document) {
         updateRecipe(1)
     }
 
+    fun updatePortions(portion: Int) {
+        updateRecipe(portion)
+    }
+
     /*
     Parses and updates all information about the given recipe
      */
-    public fun updateRecipe(portion: Int) {
+    private fun updateRecipe(portion: Int) {
         val tmpLink = recipeDocument.location()
         var recipePortion = 1
         if (portion > 1) {
@@ -72,8 +72,8 @@ class Recipe(private var recipeDocument: Document) {
             title = recipeTitle,
             description = recipeDescription,
             rating = recipeRating.replace(",", ".").toFloat(),
-            reviews = recipeReviews.split(" ")[0].toInt(),
-            comments = recipeComments.toInt(),
+            reviews = recipeReviews.split(" ")[0].replace(".", "").replace(",", "").toInt(),
+            comments = recipeComments.replace(".", "").replace(",", "").toInt(),
             time = recipeTime.split(" ")[1].split(" ")[0].toInt(),
             difficulty = getDifficulty(recipeDifficulty),
             date = getDate(recipeDate),
@@ -117,34 +117,54 @@ class Recipe(private var recipeDocument: Document) {
         val rows = element.children()
         val list = arrayListOf<RecipeUnit>()
         rows.forEach {
-            val left = it.child(0)
-            val right = it.child(1)
-            var weight: String
-            var unit: String
-            if (left.text().trim().lowercase().contains("n. b.") || left.text().trim().lowercase().isNullOrEmpty()) {
-                weight = "0"
-                unit = "n. B."
+            val left = it.child(0).text().trim() // amount
+            val ingredientName = it.child(1).text().trim() // ingredient
+
+            if (left.contains(" ")) {
+                val splits = left.split(" ")
+                var weight = ""
+                var unit = ""
+                if (splits.size == 2) {
+                    val first = splits[0]
+                    val second = splits[1]
+                    if (first.isNumber()) {
+                        weight = first
+                        unit = second
+                    } else {
+                        if (isFractionSymbol(first)) {
+                            weight = first
+                            unit = second
+                        } else {
+                            weight = "$first $second"
+                        }
+                    }
+                } else {
+                    if (splits.size > 2) {
+                        val first = splits[0]
+                        val second = splits[1]
+                        if (first.isNumber() && isFractionSymbol(second)) {
+                            weight = "$first $second"
+                            unit = listToString(splits, 2)
+                        }
+                    }
+                }
+                list.add(RecipeUnit(weight, unit, ingredientName))
             } else {
-                weight = left.text().trim().split(" ")[0]
-                unit = if(left.text().trim().contains(" ")) left.text().trim().split(" ")[1] else ""
+                var weight = ""
+                var unit = ""
+                if (left.isNumber()) {
+                    weight = left
+                } else {
+                    if (left.isEmpty()) {
+                        unit = left
+                    } else {
+                        weight = left
+                    }
+                }
+                list.add(RecipeUnit(weight, unit, ingredientName))
             }
-            val ingredient = right.text().trim()
-            list.add(RecipeUnit(weight.toInt(), getUnit(unit), ingredient))
         }
         return list
-    }
-
-    /*
-    Will return the weight unit of an ingredient by using the unit symbol
-    returns GRAM when the unit tag isn't matching with anything
- */
-    private fun getUnit(symbol: String): RecipeUnits {
-        RecipeUnits.values().forEach {
-            if (it.unitName.lowercase() == symbol.lowercase()) {
-                return it
-            }
-        }
-        return RecipeUnits.GRAM
     }
 
     private fun getComments(element: Element): List<RecipeComment> {
@@ -241,5 +261,24 @@ class Recipe(private var recipeDocument: Document) {
     fun getCommentsList(): List<RecipeComment> {
         return data.commentsList
     }
+
+    private fun listToString(list: List<String>, start: Int = 0, end: Int = list.size): String {
+        var string = ""
+        list.forEachIndexed { i, s ->
+            if (i in start..end) string += s
+        }
+        return string
+    }
+
+    private fun isFractionSymbol(input: String): Boolean {
+        Fractions.fractions.forEach {
+            if (input == it) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun String.isNumber(): Boolean = this.matches("-?\\d+(\\.\\d+)?".toRegex())
 
 }

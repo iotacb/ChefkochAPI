@@ -19,7 +19,7 @@ publishing {
         mavenJava(MavenPublication) {
             groupId = 'com.github.iotacb'
             artifactId = 'ChefkochAPI'
-            version = '1.4'
+            version = '1.1'
 
             from components.java
         }

@@ -6,8 +6,8 @@ class Main {
     @Test
     fun main() {
         val api = ChefkochAPI()
-        val r = api.readRecipe("https://www.chefkoch.de/rezepte/597491159418023/Berliner-Krebbel-Pfannkuchen.html?zufall=on")
-        r.getIngredients().forEach { i -> println(i.toString()) }
+        val r = api.readRecipe("https://www.chefkoch.de/rezepte/476931141659490/Brittas-Raeuberfleisch.html?zufall=on")
+        r.getIngredients().forEach { println(it.toString()) }
     }
 
 }

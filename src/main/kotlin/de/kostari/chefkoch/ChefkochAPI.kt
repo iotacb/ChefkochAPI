@@ -12,7 +12,7 @@ class ChefkochAPI {
     and returns a recipe object which contains all information about the recipe.
     But also contains a small amount of logic
      */
-    public fun readRecipe(link: String, factory: SSLSocketFactory = SSLContext.getDefault().socketFactory) : Recipe {
+    fun readRecipe(link: String, factory: SSLSocketFactory = SSLContext.getDefault().socketFactory) : Recipe {
         val document = Jsoup.connect(link).sslSocketFactory(factory).get()
         return Recipe(document)
     }
@@ -20,9 +20,9 @@ class ChefkochAPI {
     /*
     Reread the recipe with the provided amount of portions
      */
-    public fun updatePortions(portion: Int, recipe: Recipe): Recipe {
+    fun updatePortions(portion: Int, recipe: Recipe): Recipe {
         recipe.getDataObject().portions = portion
-        recipe.updateRecipe(portion)
+        recipe.updatePortions(portion)
         return recipe
     }
 
