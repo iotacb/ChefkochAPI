@@ -27,7 +27,8 @@ class Recipe(private var recipeDocument: Document) {
         var recipePortion = 1
         if (portion > 1) {
             recipePortion = portion
-            recipeDocument = Jsoup.connect("$tmpLink${if (tmpLink.contains("?")) "&" else "?"}portionen=$recipePortion").get()
+            recipeDocument =
+                Jsoup.connect("$tmpLink${if (tmpLink.contains("?")) "&" else "?"}portionen=$recipePortion").get()
         }
         val recipeContainer = recipeDocument.select("main.ds-container.rds")
         val recipeHeader = recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.recipe-header")
@@ -35,29 +36,40 @@ class Recipe(private var recipeDocument: Document) {
         val recipeCounts = recipeInfoBlock.select("div.ds-btn-box.recipe-meta-btns")
         val recipeRatingBlock = recipeCounts.select("a.recipe-rating-btn")
         val recipeInfo = recipeInfoBlock.select("small.ds-recipe-meta.recipe-meta")
-        val recipeIngredientContainer = recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.recipe-ingredients")
+        val recipeIngredientContainer =
+            recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.recipe-ingredients")
 
-        val recipeNutritionContainer = recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.recipe-nutrition")
-        val recipeNutritionContent = recipeNutritionContainer.select("div.recipe-nutrition_content.ds-box.ds-grid").firstOrNull()
+        val recipeNutritionContainer =
+            recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.recipe-nutrition")
+        val recipeNutritionContent =
+            recipeNutritionContainer.select("div.recipe-nutrition_content.ds-box.ds-grid").firstOrNull()
 
-        val recipeInstructionsContainer = recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.ds-or-3").first()!!
+        val recipeInstructionsContainer =
+            recipeContainer.select("article.ds-box.ds-grid-float.ds-col-12.ds-col-m-8.ds-or-3").first()!!
 
         val recipeCommentsContainer = recipeContainer.select("article#recipe-comments").first()!!
 
         val recipeLink = recipeDocument.location()
         val recipeTitle = recipeHeader.select("div.ds-mb.ds-mb-col").first()!!.child(0).text()
+        val recipeCarouselContainer = recipeHeader.select("div.ds-mb-left.recipe-image").first()!!
         val recipeDescription = recipeInfoBlock.select("p.recipe-text").text()
         val recipeRating = recipeRatingBlock.select("div.ds-rating-avg").select("strong").text()
         val recipeReviews = recipeRatingBlock.select("div.ds-rating-stars").attr("title")
-        val recipeComments = recipeCounts.select("button.recipe-comments-anchor.rds-comment-ctn-btn").select("strong").text()
+        val recipeComments =
+            recipeCounts.select("button.recipe-comments-anchor.rds-comment-ctn-btn").select("strong").text()
         val recipeTime = recipeInfo.select("span.recipe-preptime.rds-recipe-meta__badge").text()
         val recipeDifficulty = recipeInfo.select("span.recipe-difficulty.rds-recipe-meta__badge").text().trim()
         val recipeDate = recipeInfo.select("span.recipe-date.rds-recipe-meta__badge").text().trim()
         val recipeCalories = recipeInfo.select("span.recipe-kcalories.rds-recipe-meta__badge").text().trim()
-        val recipeProtein = if (recipeNutritionContent == null) "0" else recipeNutritionContent.child(1).text().trim().split(" ")[1]
-        val recipeFat = if (recipeNutritionContent == null) "0" else recipeNutritionContent.child(2).text().trim().split(" ")[1]
-        val recipeCarbohydrates = if (recipeNutritionContent == null) "0" else recipeNutritionContent.child(3).text().trim().split(" ")[1]
+        val recipeProtein =
+            if (recipeNutritionContent == null) "0" else recipeNutritionContent.child(1).text().trim().split(" ")[1]
+        val recipeFat =
+            if (recipeNutritionContent == null) "0" else recipeNutritionContent.child(2).text().trim().split(" ")[1]
+        val recipeCarbohydrates =
+            if (recipeNutritionContent == null) "0" else recipeNutritionContent.child(3).text().trim().split(" ")[1]
         val recipeInstructions = recipeInstructionsContainer.child(2).text().trim()
+
+        val recipeTagsContainer = recipeInstructionsContainer.child(4)
 
         val recipeAuthorContainer = recipeInstructionsContainer.child(5).child(1)
         val recipeAuthorLink = recipeAuthorContainer.child(0).select("a").attr("href")
@@ -79,13 +91,15 @@ class Recipe(private var recipeDocument: Document) {
             date = getDate(recipeDate),
             calories = if (recipeCalories.isNotEmpty()) recipeCalories.split(" ")[1].split(" ")[0].toFloat() else 0F,
             portions = recipePortion,
-            ingredients = getIngredients(recipeIngredientContainer.select("table.ingredients.table-header").first()!!.child(0)),
+            ingredients = getIngredients(recipeIngredientContainer.first()!!),
             protein = recipeProtein.replace(",", ".").toFloat(),
             fat = recipeFat.replace(",", ".").toFloat(),
             carbohydrates = recipeCarbohydrates.replace(",", ".").toFloat(),
             instructions = recipeInstructions,
             author = RecipeUser(recipeAuthorLink, recipeAuthorImage, recipeAuthorName),
-            commentsList = getComments(recipeCommentsContent)
+            commentsList = getComments(recipeCommentsContent),
+            images = getRecipeImages(recipeCarouselContainer),
+            tags = getRecipeTags(recipeTagsContainer)
         )
     }
 
@@ -114,8 +128,19 @@ class Recipe(private var recipeDocument: Document) {
     Returns all ingredients of the recipe
      */
     private fun getIngredients(element: Element): List<RecipeUnit> {
-        val rows = element.children()
         val list = arrayListOf<RecipeUnit>()
+        val tables = element.select("table.ingredients.table-header")
+        tables.forEach {
+            val table = if (it.childrenSize() > 1) it.child(1) else it.child(0)
+            val ingredients = getIngredientsOfTable(table)
+            list.addAll(ingredients)
+        }
+        return list
+    }
+
+    private fun getIngredientsOfTable(table: Element): List<RecipeUnit> {
+        val list = arrayListOf<RecipeUnit>()
+        val rows = table.children()
         rows.forEach {
             val left = it.child(0).text().trim() // amount
             val ingredientName = it.child(1).text().trim() // ingredient
@@ -189,9 +214,59 @@ class Recipe(private var recipeDocument: Document) {
             val dates = date.split(".")
             val time = right.select("div>small").text().trim().split(" ")[1]
             val user = RecipeUser(link, image, name)
-            commentsList.add(RecipeComment(user, text, RecipeDate(dates[0].toInt(), dates[1].toInt(), dates[2].toInt(), time.split(":")[0].toInt(), time.split(":")[1].toInt())))
+            commentsList.add(
+                RecipeComment(
+                    user,
+                    text,
+                    RecipeDate(
+                        dates[0].toInt(),
+                        dates[1].toInt(),
+                        dates[2].toInt(),
+                        time.split(":")[0].toInt(),
+                        time.split(":")[1].toInt()
+                    )
+                )
+            )
         }
         return commentsList
+    }
+
+    /*
+    Returns information about all images of the recipe
+     */
+    fun getRecipeImages(carouselContainer: Element): List<RecipeImage> {
+        val list = arrayListOf<RecipeImage>()
+        val carousel = carouselContainer.select("amp-carousel#recipe-image-carousel").first()!!
+        carousel.children().forEachIndexed { index, element ->
+            if (index > 0 && index < carousel.childrenSize() - 1) {
+                val child = element.child(0)
+                if (child.attr("data-vars-type") != "video") {
+                    val meta = element.child(1)
+                    val image = child.child(0).attr("src")
+                    val metaChild = meta.child(0)
+                    val tmpLink = metaChild.attr("href")
+                    val link = if (tmpLink.contains("chefkoch.de")) tmpLink else "https://www.chefkoch.de$tmpLink"
+                    list.add(RecipeImage(link, metaChild.text().trim(), image))
+                }
+            }
+        }
+        return list
+    }
+
+    /*
+    Returns all tags that have been added to the recipe
+     */
+    fun getRecipeTags(tagContainer: Element): List<RecipeTag> {
+        val list = arrayListOf<RecipeTag>()
+        val carousel = tagContainer.child(0)
+        carousel.children().forEach {
+            val child = it.child(0)
+            val title = child.text().trim()
+            val tmpLink = child.attr("href")
+            val link = if (tmpLink.contains("chefkoch.de")) tmpLink else "https://www.chefkoch.de$tmpLink"
+            list.add(RecipeTag(title, link))
+        }
+        return list
     }
 
     fun getDataObject(): RecipeData {
@@ -260,6 +335,14 @@ class Recipe(private var recipeDocument: Document) {
 
     fun getCommentsList(): List<RecipeComment> {
         return data.commentsList
+    }
+
+    fun getImages(): List<RecipeImage> {
+        return data.images
+    }
+
+    fun getTags(): List<RecipeTag> {
+        return data.tags
     }
 
     private fun listToString(list: List<String>, start: Int = 0, end: Int = list.size): String {

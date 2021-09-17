@@ -32,10 +32,17 @@ data class RecipeData(
     val fat: Float,
     val carbohydrates: Float,
 
+    /*
+    Other information
+     */
     val instructions: String,
 
     val author: RecipeUser,
 
-    val commentsList: List<RecipeComment>
+    val commentsList: List<RecipeComment>,
+
+    val images: List<RecipeImage>,
+
+    val tags: List<RecipeTag>
 
 )
