@@ -58,7 +58,8 @@ class Recipe(private var recipeDocument: Document) {
         val recipeComments =
             recipeCounts.select("button.recipe-comments-anchor.rds-comment-ctn-btn").select("strong").text()
         val recipeTime = recipeInfo.select("span.recipe-preptime.rds-recipe-meta__badge").text()
-        val recipeDifficulty = recipeInfo.select("span.recipe-difficulty.rds-recipe-meta__badge").text().trim()
+        val recipeDifficulty =
+            recipeInfo.select("span.recipe-difficulty.rds-recipe-meta__badge").text().trim().split(" ")[1]
         val recipeDate = recipeInfo.select("span.recipe-date.rds-recipe-meta__badge").text().trim()
         val recipeCalories = recipeInfo.select("span.recipe-kcalories.rds-recipe-meta__badge").text().trim()
         val recipeProtein =
@@ -79,6 +80,8 @@ class Recipe(private var recipeDocument: Document) {
         val recipeCommentWrapper = recipeCommentsContainer.select("div.bi-comment-forms")
         val recipeCommentsContent = recipeCommentWrapper.first()!!.child(12)
 
+        println(recipeDifficulty)
+
         data = RecipeData(
             link = recipeLink,
             title = recipeTitle,
@@ -89,12 +92,12 @@ class Recipe(private var recipeDocument: Document) {
             time = recipeTime.split(" ")[1].split(" ")[0].toInt(),
             difficulty = getDifficulty(recipeDifficulty),
             date = getDate(recipeDate),
-            calories = if (recipeCalories.isNotEmpty()) recipeCalories.split(" ")[1].split(" ")[0].toFloat() else 0F,
+            calories = (if (recipeCalories.isNotEmpty()) recipeCalories.split(" ")[1].split(" ")[0].toFloat() else 0F) * recipePortion,
             portions = recipePortion,
             ingredients = getIngredients(recipeIngredientContainer.first()!!),
-            protein = recipeProtein.replace(",", ".").toFloat(),
-            fat = recipeFat.replace(",", ".").toFloat(),
-            carbohydrates = recipeCarbohydrates.replace(",", ".").toFloat(),
+            protein = recipeProtein.replace(",", ".").toFloat() * recipePortion,
+            fat = recipeFat.replace(",", ".").toFloat() * recipePortion,
+            carbohydrates = recipeCarbohydrates.replace(",", ".").toFloat() * recipePortion,
             instructions = recipeInstructions,
             author = RecipeUser(recipeAuthorLink, recipeAuthorImage, recipeAuthorName),
             commentsList = getComments(recipeCommentsContent),
@@ -109,7 +112,7 @@ class Recipe(private var recipeDocument: Document) {
      */
     private fun getDifficulty(diff: String): RecipeDifficulty {
         RecipeDifficulty.values().forEach {
-            if (it.name.lowercase() == diff) {
+            if (it.diffName.equals(diff, true)) {
                 return it
             }
         }
@@ -234,7 +237,7 @@ class Recipe(private var recipeDocument: Document) {
     /*
     Returns information about all images of the recipe
      */
-    fun getRecipeImages(carouselContainer: Element): List<RecipeImage> {
+    private fun getRecipeImages(carouselContainer: Element): List<RecipeImage> {
         val list = arrayListOf<RecipeImage>()
         val carousel = carouselContainer.select("amp-carousel#recipe-image-carousel").first()!!
         carousel.children().forEachIndexed { index, element ->
@@ -256,7 +259,7 @@ class Recipe(private var recipeDocument: Document) {
     /*
     Returns all tags that have been added to the recipe
      */
-    fun getRecipeTags(tagContainer: Element): List<RecipeTag> {
+    private fun getRecipeTags(tagContainer: Element): List<RecipeTag> {
         val list = arrayListOf<RecipeTag>()
         val carousel = tagContainer.child(0)
         carousel.children().forEach {
@@ -285,6 +288,10 @@ class Recipe(private var recipeDocument: Document) {
         return data.description
     }
 
+    fun getRating(): Float {
+        return data.rating
+    }
+
     fun getReviews(): Int {
         return data.reviews
     }
@@ -309,8 +316,20 @@ class Recipe(private var recipeDocument: Document) {
         return data.calories
     }
 
+    fun getPortions(): Int {
+        return data.portions
+    }
+
     fun getIngredients(): List<RecipeUnit> {
         return data.ingredients
+    }
+
+    private fun getIngredientsString(): String {
+        var string = ""
+        getIngredients().forEachIndexed { index, it ->
+            string += " - $it${if (index < getIngredients().size - 1) "\n" else ""}"
+        }
+        return string
     }
 
     fun getProtein(): Float {
@@ -329,6 +348,16 @@ class Recipe(private var recipeDocument: Document) {
         return data.instructions
     }
 
+    private fun getInstructionsListString(): String {
+        var i = ""
+        val instructions = data.instructions
+        val lines = instructions.split("\n")
+        lines.forEachIndexed { index, it ->
+            i += " $it${if (index < lines.size - 1) "\n" else ""}"
+        }
+        return i
+    }
+
     fun getAuthor(): RecipeUser {
         return data.author
     }
@@ -337,12 +366,36 @@ class Recipe(private var recipeDocument: Document) {
         return data.commentsList
     }
 
+    private fun getCommentsString(): String {
+        var string = ""
+        getCommentsList().forEachIndexed { index, it ->
+            string += " - $it${if (index < getCommentsList().size - 1) "\n" else ""}"
+        }
+        return string
+    }
+
     fun getImages(): List<RecipeImage> {
         return data.images
     }
 
+    private fun getImagesString(): String {
+        var string = ""
+        getImages().forEachIndexed { index, it ->
+            string += " - $it${if (index < getImages().size - 1) "\n" else ""}"
+        }
+        return string
+    }
+
     fun getTags(): List<RecipeTag> {
         return data.tags
+    }
+
+    private fun getTagsString(): String {
+        var string = ""
+        getTags().forEachIndexed { index, it ->
+            string += " - $it${if (index < getTags().size - 1) "\n" else ""}"
+        }
+        return string
     }
 
     private fun listToString(list: List<String>, start: Int = 0, end: Int = list.size): String {
@@ -363,5 +416,34 @@ class Recipe(private var recipeDocument: Document) {
     }
 
     private fun String.isNumber(): Boolean = this.matches("-?\\d+(\\.\\d+)?".toRegex())
+
+    override fun toString(): String {
+        val spacer = "--------\n"
+        return "Link: ${getLink()}\n" +
+                "Title: ${getTitle()}\n" +
+                "Description: ${getDescription()}\n" +
+                "Rating: ${getRating()}\n" +
+                "Reviews: ${getReviews()}\n" +
+                "Comments: ${getComments()}\n" +
+                "Time: ${getTime()}\n" +
+                "Difficulty: ${getDifficulty().name}\n" +
+                "Date: ${getDate()}\n" +
+                "Calories: ${getCalories()}\n" +
+                "Portions: ${getPortions()}\n" +
+                spacer +
+                "Ingredients:\n${getIngredientsString()}\n" +
+                spacer +
+                "Protein: ${getProtein()}\n" +
+                "Fat: ${getFat()}\n" +
+                "Carbohydrates: ${getCarbohydrates()}\n" +
+                "Instructions: ${getInstructionsListString()}" +
+                "Author: ${getAuthor()}\n" +
+                spacer +
+                "Comments:\n${getCommentsString()}\n" +
+                spacer +
+                "Images:\n${getImagesString()}\n" +
+                spacer +
+                "Tags:\n${getTagsString()}"
+    }
 
 }
