@@ -1,7 +1,4 @@
-package de.kostari.chefkoch.recipe.misc
-
-import de.kostari.chefkoch.recipe.unit.RecipeUnit
-import de.kostari.chefkoch.recipe.user.RecipeUser
+package de.kostari.chefkoch.recipe.data
 
 data class RecipeData(
 

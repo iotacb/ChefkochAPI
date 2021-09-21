@@ -1,8 +1,9 @@
 package de.kostari.chefkoch.recipe
 
-import de.kostari.chefkoch.recipe.misc.*
-import de.kostari.chefkoch.recipe.unit.RecipeUnit
-import de.kostari.chefkoch.recipe.user.RecipeUser
+import de.kostari.chefkoch.api.Constants
+import de.kostari.chefkoch.recipe.data.*
+import de.kostari.chefkoch.recipe.data.RecipeUnit
+import de.kostari.chefkoch.recipe.data.RecipeUser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -15,12 +16,21 @@ class Recipe(private var recipeDocument: Document) {
         updateRecipe(1)
     }
 
+    /**
+     * Updates the portions of a recipe and recalculates the ingredient amounts
+     * of the recipe
+     *
+     * @property portion the amount of portions of the recipe
+     * @return returns the provided recipe with updated portions
+     */
     fun updatePortions(portion: Int) {
         updateRecipe(portion)
     }
 
-    /*
-    Parses and updates all information about the given recipe
+    /**
+     * Parses and updates the recipe
+     *
+     * @property portion the amount of portions of the recipe
      */
     private fun updateRecipe(portion: Int) {
         val tmpLink = recipeDocument.location()
@@ -106,29 +116,38 @@ class Recipe(private var recipeDocument: Document) {
         )
     }
 
-    /*
-    Will return the recipe difficulty
-    returns NORMAL when the difficulty tag isn't matching with anything
+    /**
+     * Converts the string difficulty to a difficulty object
+     *
+     * @property diff the difficulty which should be converted
+     * @return the converted difficulty
      */
     private fun getDifficulty(diff: String): RecipeDifficulty {
-        RecipeDifficulty.values().forEach {
-            if (it.diffName.equals(diff, true)) {
+        RecipeDifficulty.values().forEach { // loop over each difficulty
+            if (it.diffName.equals(diff, true)) { // check if the difficulty's name matches the provided name
                 return it
             }
         }
-        return RecipeDifficulty.NORMAL
+        return RecipeDifficulty.NORMAL // return normal difficulty if nothing matches
     }
 
-    /*
-    Will return the date when the recipe got uploaded
+    /**
+     * Converts a string date to a date object
+     * and returns it
+     *
+     * @property date the date which should be converted
+     * @return the converted date
      */
     private fun getDate(date: String): RecipeDate {
-        val nums = date.replace("\uE916", "").trim().split(".")
+        val nums = date.replace("\uE916", "").trim().split(".") // remove unicode character
         return RecipeDate(nums[0].toInt(), nums[1].toInt(), nums[2].toInt())
     }
 
-    /*
-    Returns all ingredients of the recipe
+    /**
+     * Returns all ingredients of the recipe
+     *
+     * @property element the container of the ingredients table
+     * @return a list of all ingredients
      */
     private fun getIngredients(element: Element): List<RecipeUnit> {
         val list = arrayListOf<RecipeUnit>()
@@ -141,6 +160,12 @@ class Recipe(private var recipeDocument: Document) {
         return list
     }
 
+    /**
+     * Returns each ingredient in a table
+     *
+     * @property table the table whose content should be returned
+     * @return a list of all ingredients in the provided table
+     */
     private fun getIngredientsOfTable(table: Element): List<RecipeUnit> {
         val list = arrayListOf<RecipeUnit>()
         val rows = table.children()
@@ -195,6 +220,12 @@ class Recipe(private var recipeDocument: Document) {
         return list
     }
 
+    /**
+     * Returns each comment of the recipe
+     *
+     * @property element the container of the comment section
+     * @return a list of all comments
+     */
     private fun getComments(element: Element): List<RecipeComment> {
         val commentChildren = element.children()
         val list = arrayListOf<Element>()
@@ -234,8 +265,11 @@ class Recipe(private var recipeDocument: Document) {
         return commentsList
     }
 
-    /*
-    Returns information about all images of the recipe
+    /**
+     * Returns the link of each image of the recipes
+     *
+     * @property carouselContainer the container of the image carousel
+     * @return a list of all image links
      */
     private fun getRecipeImages(carouselContainer: Element): List<RecipeImage> {
         val list = arrayListOf<RecipeImage>()
@@ -248,7 +282,7 @@ class Recipe(private var recipeDocument: Document) {
                     val image = child.child(0).attr("src")
                     val metaChild = meta.child(0)
                     val tmpLink = metaChild.attr("href")
-                    val link = if (tmpLink.contains("chefkoch.de")) tmpLink else "https://www.chefkoch.de$tmpLink"
+                    val link = if (tmpLink.contains("chefkoch.de")) tmpLink else "${Constants.CHEFKOCH}$tmpLink"
                     list.add(RecipeImage(link, metaChild.text().trim(), image))
                 }
             }
@@ -256,8 +290,11 @@ class Recipe(private var recipeDocument: Document) {
         return list
     }
 
-    /*
-    Returns all tags that have been added to the recipe
+    /**
+     * Returns all tags of the recipe
+     *
+     * @property tagContainer the container of the tags
+     * @return a list of all tags
      */
     private fun getRecipeTags(tagContainer: Element): List<RecipeTag> {
         val list = arrayListOf<RecipeTag>()
@@ -266,7 +303,7 @@ class Recipe(private var recipeDocument: Document) {
             val child = it.child(0)
             val title = child.text().trim()
             val tmpLink = child.attr("href")
-            val link = if (tmpLink.contains("chefkoch.de")) tmpLink else "https://www.chefkoch.de$tmpLink"
+            val link = if (tmpLink.contains("chefkoch.de")) tmpLink else "${Constants.CHEFKOCH}$tmpLink"
             list.add(RecipeTag(title, link))
         }
         return list
@@ -324,6 +361,11 @@ class Recipe(private var recipeDocument: Document) {
         return data.ingredients
     }
 
+    /**
+     * Combines all ingredients to a single string
+     *
+     * @return the combined ingredients
+     */
     private fun getIngredientsString(): String {
         var string = ""
         getIngredients().forEachIndexed { index, it ->
@@ -348,6 +390,11 @@ class Recipe(private var recipeDocument: Document) {
         return data.instructions
     }
 
+    /**
+     * Combines the recipe instructions to a single string
+     *
+     * @return the combined instructions
+     */
     private fun getInstructionsListString(): String {
         var i = ""
         val instructions = data.instructions
@@ -366,6 +413,11 @@ class Recipe(private var recipeDocument: Document) {
         return data.commentsList
     }
 
+    /**
+     * Combines all comments to a single string
+     *
+     * @return the combined comments
+     */
     private fun getCommentsString(): String {
         var string = ""
         getCommentsList().forEachIndexed { index, it ->
@@ -378,6 +430,11 @@ class Recipe(private var recipeDocument: Document) {
         return data.images
     }
 
+    /**
+     * Combines all image links to a single string
+     *
+     * @return the combined image links
+     */
     private fun getImagesString(): String {
         var string = ""
         getImages().forEachIndexed { index, it ->
@@ -390,6 +447,11 @@ class Recipe(private var recipeDocument: Document) {
         return data.tags
     }
 
+    /**
+     * Combines the all tags to a single string
+     *
+     * @return the combined tags
+     */
     private fun getTagsString(): String {
         var string = ""
         getTags().forEachIndexed { index, it ->
@@ -398,6 +460,15 @@ class Recipe(private var recipeDocument: Document) {
         return string
     }
 
+    /**
+     * Combines the content of a list to a string.
+     * Change the range of to be concatenated items
+     *
+     * @property list the string whose content should be combined
+     * @property start the start index from where the content should be concatenated
+     * @property end the end index to whose index the string should be concatenated
+     * @return returns the concatenated content of the provided list
+     */
     private fun listToString(list: List<String>, start: Int = 0, end: Int = list.size): String {
         var string = ""
         list.forEachIndexed { i, s ->
@@ -406,6 +477,12 @@ class Recipe(private var recipeDocument: Document) {
         return string
     }
 
+    /**
+     * Checks if the provided string is a unicode fraction symbol
+     *
+     * @property input the string which should be checked
+     * @return
+     */
     private fun isFractionSymbol(input: String): Boolean {
         Fractions.fractions.forEach {
             if (input == it) {

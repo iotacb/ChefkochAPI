@@ -1,4 +1,4 @@
-package de.kostari.chefkoch.recipe.unit
+package de.kostari.chefkoch.recipe.data
 
 data class RecipeUnit(
     val ingredientWeight: String,
@@ -12,6 +12,4 @@ data class RecipeUnit(
             "$ingredientWeight${if(ingredientUnit.isEmpty()) "" else " $ingredientUnit"}, $ingredient"
         }
     }
-
-    private fun String.isNumber(): Boolean = this.matches("-?\\d+(\\.\\d+)?".toRegex())
 }

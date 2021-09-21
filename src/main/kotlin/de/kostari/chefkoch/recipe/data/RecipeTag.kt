@@ -1,4 +1,4 @@
-package de.kostari.chefkoch.recipe.misc
+package de.kostari.chefkoch.recipe.data
 
 data class RecipeTag(
     val title: String,

@@ -1,4 +1,4 @@
-package de.kostari.chefkoch.recipe.user
+package de.kostari.chefkoch.recipe.data
 
 data class RecipeUser(
     val link: String,
