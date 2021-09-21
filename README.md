@@ -70,7 +70,9 @@ val recipe = api.readRecipe("LINK_OF_RECIPE", YOUR_SSL_FACTORY)
 ```
 
 ### **Libraries used**
-**ChefkochAPI** uses **[Jsoup](https://jsoup.org)** to parse the html page of the recipe
+**ChefkochAPI** uses the following libraries:
+ - [Jsoup](https://jsoup.org) to parse the html page of the recipe
+ - [GSON](https://github.com/google/gson) to parse the recipe to json
 
 ## License
 ```markdown
